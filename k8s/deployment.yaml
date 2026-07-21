@@ -1,0 +1,68 @@
+# Example Kubernetes manifest. Backup output appears in `kubectl logs`.
+apiVersion: v1
+kind: Secret
+metadata:
+  name: vaultwarden-backup
+type: Opaque
+stringData:
+  BACKUP_AGE_KEY: "age1qqqqqexamplepublickeyreplaceme"
+  BACKUP_S3_ENDPOINT: "https://s3.us-east-1.amazonaws.com"
+  BACKUP_S3_BUCKET: "my-vaultwarden-backups"
+  BACKUP_S3_ACCESS_KEY_ID: "AKIA..."
+  BACKUP_S3_SECRET_ACCESS_KEY: "..."
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: vaultwarden-backup-cfg
+data:
+  BACKUP_SCHEDULE: "0 * * * *"
+  BACKUP_RETENTION_SCHEDULE: "30 3 * * *"
+  BACKUP_RETENTION_COUNT: "24"
+  BACKUP_S3_PATH_PREFIX: "vaultwarden/"
+  BACKUP_S3_REGION: "us-east-1"
+  BACKUP_S3_PROVIDER: "Other"
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: vaultwarden
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate            # single writer to the /data PVC
+  selector:
+    matchLabels:
+      app: vaultwarden
+  template:
+    metadata:
+      labels:
+        app: vaultwarden
+    spec:
+      containers:
+        - name: vaultwarden
+          image: custom-vaultwarden:latest
+          ports:
+            - containerPort: 80
+          envFrom:
+            - configMapRef:
+                name: vaultwarden-backup-cfg
+            - secretRef:
+                name: vaultwarden-backup
+          volumeMounts:
+            - name: data
+              mountPath: /data
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: vaultwarden-data
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: vaultwarden-data
+spec:
+  accessModes: ["ReadWriteOnce"]
+  resources:
+    requests:
+      storage: 5Gi

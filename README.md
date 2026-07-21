@@ -206,6 +206,7 @@ age -d -i key.txt vaultwarden-20260721T120000Z.tar.gz.age | tar -xzf - -C /resto
 | `... backups are DISABLED` at startup | one of the required `BACKUP_*` vars is missing |
 | No backup after an hour | check the schedule; run `vw-backup.sh` manually to see errors |
 | `upload failed` | wrong endpoint/credentials/bucket, or provider needs path-style — try `BACKUP_S3_PROVIDER=Other` |
+| `403 AccessDenied` on PutObject while a plain boto3 `put_object` works | the key has `s3:PutObject` but not `s3:PutObjectAcl`. The image sends an empty `acl` so no `x-amz-acl` header is emitted — rebuild if you are on an older image, or grant `s3:PutObjectAcl` |
 | `age encryption failed` | `BACKUP_AGE_KEY` is not a valid public `age1...` recipient |
 
 ---

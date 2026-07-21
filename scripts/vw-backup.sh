@@ -50,10 +50,12 @@ tar -czf "$WORK/data.tar.gz" -C "$SNAP" . || fail "tar failed"
 # --- 3. Encrypt with age (public recipient key(s)) --------------------------
 # BACKUP_AGE_KEY may contain multiple whitespace-separated recipient keys.
 AGE_ARGS=()
+AGE_RECIPIENTS=0
 for k in $BACKUP_AGE_KEY; do
   AGE_ARGS+=( -r "$k" )
+  AGE_RECIPIENTS=$(( AGE_RECIPIENTS + 1 ))
 done
-log "Encrypting archive with age (${#AGE_ARGS[@]} recipient arg(s))"
+log "Encrypting archive with age (${AGE_RECIPIENTS} recipient(s))"
 age "${AGE_ARGS[@]}" -o "$WORK/$ARCHIVE" "$WORK/data.tar.gz" || fail "age encryption failed"
 
 SIZE="$(du -h "$WORK/$ARCHIVE" | cut -f1)"

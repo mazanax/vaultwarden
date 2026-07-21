@@ -48,6 +48,12 @@ if backups_enabled; then
   # ---- rclone remote "s3backup" --------------------------------------------
   umask 077
   mkdir -p "$(dirname "$RCLONE_CONF")"
+  # Notes:
+  #   acl (empty)        -> rclone omits the "x-amz-acl" header entirely. Sending
+  #                         it would require s3:PutObjectAcl on top of s3:PutObject
+  #                         and makes MinIO/other backends return 403 when only
+  #                         PutObject is granted. Objects stay private by default.
+  #   no_check_bucket    -> skip the HeadBucket/create-bucket probe on every run.
   cat > "$RCLONE_CONF" <<EOF
 [s3backup]
 type = s3
@@ -57,6 +63,8 @@ access_key_id = ${BACKUP_S3_ACCESS_KEY_ID}
 secret_access_key = ${BACKUP_S3_SECRET_ACCESS_KEY}
 region = ${BACKUP_S3_REGION}
 endpoint = ${BACKUP_S3_ENDPOINT}
+acl =
+no_check_bucket = true
 EOF
 
   # ---- env file sourced by the cron jobs -----------------------------------
